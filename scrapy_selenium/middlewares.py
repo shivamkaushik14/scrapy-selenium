@@ -107,8 +107,7 @@ class SeleniumMiddleware:
         axe = Axe(self.driver)
         axe.inject()
         axe_results = axe.run()
-        with open('C:\\Users\\shiva\\Desktop\\test.txt','w') as f:
-            f.write("CHAL RAHA HAI")
+        request.meta['axe'] = axe_results
 
         body = str.encode(self.driver.page_source)
 
