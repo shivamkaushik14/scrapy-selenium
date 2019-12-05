@@ -54,6 +54,8 @@ class SeleniumMiddleware:
 
         self.driver = driver_klass(**driver_kwargs)
 
+        self.client = MongoClient('mongodb://127.0.0.1:27017')
+
     @classmethod
     def from_crawler(cls, crawler):
         """Initialize the middleware with the crawler settings"""
@@ -96,8 +98,7 @@ class SeleniumMiddleware:
         self.driver.get(request.url)
 
         ##Prepare for AXE
-        client = MongoClient('mongodb://127.0.0.1:27017')
-        db = client[self.str_to_hex(self.get_website_base(response.url))]
+        db = self.client[self.str_to_hex(self.get_website_base(response.url))]
 
         ##Run AXE
         axe = Axe(self.driver)
@@ -111,8 +112,6 @@ class SeleniumMiddleware:
                 'results': axe_results
             }
         })
-        client.close()
-
 
         for cookie_name, cookie_value in request.cookies.items():
             self.driver.add_cookie(
