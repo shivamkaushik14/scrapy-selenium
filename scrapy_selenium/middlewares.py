@@ -120,7 +120,7 @@ class SeleniumMiddleware:
                     'value': cookie_value
                 }
             )
-
+        print("CHAL RAHA HU MAI ")
         if request.wait_until:
             WebDriverWait(self.driver, request.wait_time).until(
                 request.wait_until
