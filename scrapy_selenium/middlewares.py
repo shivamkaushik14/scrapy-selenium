@@ -106,12 +106,12 @@ class SeleniumMiddleware:
         axe_results = axe.run()
 
         ##Feed axe_results to mongodb
-        db.axe.update_one({'webpage': response.url}, {
+        db['axe'].update_one({'webpage': response.url}, {
             '$addToSet': {
                 'timestamp': datetime.datetime.utcnow(),
                 'results': axe_results
             }
-        })
+        }, upsert=True)
 
         for cookie_name, cookie_value in request.cookies.items():
             self.driver.add_cookie(
