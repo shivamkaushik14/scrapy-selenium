@@ -76,14 +76,6 @@ class SeleniumMiddleware:
 
         return middleware
 
-    def str_to_hex(self, txt):
-        #input string txt
-        #return string hex
-        return codecs.encode(txt.encode('utf-8','ignore'), 'hex').decode()
-
-    def get_website_base(self, w_url):
-        return w_url.strip('http:').strip('https:').strip('//').strip('www.').split('/')[0]
-
     def process_request(self, request, spider):
         """Process a request using the selenium driver if applicable"""
 
@@ -91,11 +83,6 @@ class SeleniumMiddleware:
             return None
 
         self.driver.get(request.url)
-
-        ##Run AXE
-        axe = Axe(self.driver)
-        axe.inject()
-        axe_results = axe.run()
 
         for cookie_name, cookie_value in request.cookies.items():
             self.driver.add_cookie(
@@ -116,6 +103,13 @@ class SeleniumMiddleware:
         if request.script:
             self.driver.execute_script(request.script)
 
+        ##Run AXE
+        axe = Axe(self.driver)
+        axe.inject()
+        axe_results = axe.run()
+        with open('C:\\Users\\shiva\\Desktop\\test.txt','w') as f:
+            f.write("CHAL RAHA HAI")
+
         body = str.encode(self.driver.page_source)
 
         # Expose the driver via the "meta" attribute
@@ -125,8 +119,7 @@ class SeleniumMiddleware:
             self.driver.current_url,
             body=body,
             encoding='utf-8',
-            request=request,
-            axe=axe_results
+            request=request
         )
 
     def spider_closed(self):
