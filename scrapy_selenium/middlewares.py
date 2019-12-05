@@ -7,9 +7,6 @@ from scrapy.exceptions import NotConfigured
 from scrapy.http import HtmlResponse
 from selenium.webdriver.support.ui import WebDriverWait
 from axe_selenium_python import Axe
-from pymongo import MongoClient
-import codecs
-import datetime
 
 from .http import SeleniumRequest
 
@@ -54,8 +51,6 @@ class SeleniumMiddleware:
 
         self.driver = driver_klass(**driver_kwargs)
 
-        self.client = MongoClient('mongodb://127.0.0.1:27017')
-
     @classmethod
     def from_crawler(cls, crawler):
         """Initialize the middleware with the crawler settings"""
@@ -97,21 +92,10 @@ class SeleniumMiddleware:
 
         self.driver.get(request.url)
 
-        ##Prepare for AXE
-        db = self.client[self.str_to_hex(self.get_website_base(response.url))]
-
         ##Run AXE
         axe = Axe(self.driver)
         axe.inject()
         axe_results = axe.run()
-
-        ##Feed axe_results to mongodb
-        db['axe'].update_one({'webpage': response.url}, {
-            '$addToSet': {
-                'timestamp': datetime.datetime.utcnow(),
-                'results': axe_results
-            }
-        }, upsert=True)
 
         for cookie_name, cookie_value in request.cookies.items():
             self.driver.add_cookie(
@@ -120,7 +104,7 @@ class SeleniumMiddleware:
                     'value': cookie_value
                 }
             )
-        print("CHAL RAHA HU MAI ")
+
         if request.wait_until:
             WebDriverWait(self.driver, request.wait_time).until(
                 request.wait_until
@@ -141,7 +125,8 @@ class SeleniumMiddleware:
             self.driver.current_url,
             body=body,
             encoding='utf-8',
-            request=request
+            request=request,
+            axe=axe_results
         )
 
     def spider_closed(self):
