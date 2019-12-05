@@ -6,6 +6,10 @@ from scrapy import signals
 from scrapy.exceptions import NotConfigured
 from scrapy.http import HtmlResponse
 from selenium.webdriver.support.ui import WebDriverWait
+from axe_selenium_python import Axe
+from pymongo import MongoClient
+import codecs
+import datetime
 
 from .http import SeleniumRequest
 
@@ -75,6 +79,14 @@ class SeleniumMiddleware:
 
         return middleware
 
+    def str_to_hex(self, txt):
+        #input string txt
+        #return string hex
+        return codecs.encode(txt.encode('utf-8','ignore'), 'hex').decode()
+
+    def get_website_base(self, w_url):
+        return w_url.strip('http:').strip('https:').strip('//').strip('www.').split('/')[0]
+
     def process_request(self, request, spider):
         """Process a request using the selenium driver if applicable"""
 
@@ -82,6 +94,25 @@ class SeleniumMiddleware:
             return None
 
         self.driver.get(request.url)
+
+        ##Prepare for AXE
+        client = MongoClient('mongodb://127.0.0.1:27017')
+        db = client[self.str_to_hex(self.get_website_base(response.url))]
+
+        ##Run AXE
+        axe = Axe(self.driver)
+        axe.inject()
+        axe_results = axe.run()
+
+        ##Feed axe_results to mongodb
+        db.axe.update_one({'webpage': response.url}, {
+            '$addToSet': {
+                'timestamp': datetime.datetime.utcnow(),
+                'results': axe_results
+            }
+        })
+        client.close()
+
 
         for cookie_name, cookie_value in request.cookies.items():
             self.driver.add_cookie(
@@ -118,4 +149,3 @@ class SeleniumMiddleware:
         """Shutdown the driver when spider is closed"""
 
         self.driver.quit()
-
